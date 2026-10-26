@@ -2,6 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useState } from 'react'
 import { CampaignTools } from './components/CampaignTools'
 import { DiceRoller } from './components/DiceRoller'
+import { InstallButton } from './components/InstallButton'
 import { NoteEditor } from './components/NoteEditor'
 import { NoteView } from './components/NoteView'
 import { StatusChip } from './components/StatusChip'
@@ -129,6 +130,7 @@ export default function App() {
           </select>
         </label>
         <DiceRoller />
+        <InstallButton />
       </header>
 
       <aside className="sidebar">

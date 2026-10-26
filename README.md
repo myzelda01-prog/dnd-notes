@@ -18,6 +18,8 @@ A note-taking app for Dungeons & Dragons campaigns. Keep track of sessions, NPCs
 - **Dice roller**: `d20`, `2d6+3`, `4d8-1`.
 - **Backups**: save a campaign to a JSON file and restore it on another device.
 
+**Install it** on your laptop: open the site in Chrome or Edge and click **Install app** in the top bar (or the install icon in the address bar). It then opens in its own window and works offline.
+
 Notes are stored in your browser (IndexedDB). Nothing is sent to a server, so back up to a file now and then, and before clearing browser data.
 
 ## Develop
