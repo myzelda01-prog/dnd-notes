@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { rollDice } from './dice'
+import { decideRemote, needsPush } from './merge'
 import { extractLinks, findBacklinks, matchesQuery, parseTags } from './links'
 import { toggleTaskLine } from './tasks'
 import type { Note } from './types'
@@ -54,5 +55,30 @@ describe('tasks', () => {
     expect(toggleTaskLine(body, 1)).toBe('Intro\n- [x] Search the road\n- [x] Ask Oswin')
     expect(toggleTaskLine(body, 2)).toBe('Intro\n- [ ] Search the road\n- [ ] Ask Oswin')
     expect(toggleTaskLine(body, 0)).toBe(body)
+  })
+})
+
+describe('sync merge', () => {
+  it('takes newer cloud copies and ignores older ones', () => {
+    expect(decideRemote({ updated: 20 }, { updated: 10 }, undefined)).toBe('put')
+    expect(decideRemote({ updated: 10 }, { updated: 20 }, undefined)).toBe('skip')
+    expect(decideRemote({ updated: 10 }, undefined, undefined)).toBe('put')
+  })
+
+  it('applies cloud deletes unless the local copy is newer', () => {
+    expect(decideRemote({ updated: 20, deleted: true }, { updated: 10 }, undefined)).toBe('delete')
+    expect(decideRemote({ updated: 20, deleted: true }, { updated: 30 }, undefined)).toBe('skip')
+    expect(decideRemote({ updated: 20, deleted: true }, undefined, undefined)).toBe('skip')
+  })
+
+  it('keeps a newer local delete', () => {
+    expect(decideRemote({ updated: 10 }, undefined, 15)).toBe('skip')
+    expect(decideRemote({ updated: 20 }, undefined, 15)).toBe('put')
+  })
+
+  it('pushes only changes the cloud has not seen', () => {
+    expect(needsPush(10, undefined)).toBe(true)
+    expect(needsPush(10, 10)).toBe(false)
+    expect(needsPush(11, 10)).toBe(true)
   })
 })

@@ -20,7 +20,9 @@ A note-taking app for Dungeons & Dragons campaigns. Keep track of sessions, NPCs
 
 **Install it** on your laptop: open the site in Chrome or Edge and click **Install app** in the top bar (or the install icon in the address bar). It then opens in its own window and works offline.
 
-Notes are stored in your browser (IndexedDB). Nothing is sent to a server, so back up to a file now and then, and before clearing browser data.
+**Sync between devices**: click **Sign in to sync** and use your Google account. Your notes show up on every device where you sign in. Notes are still saved on the device first, so the app works offline. Setup is described in [docs/sync-setup.md](docs/sync-setup.md).
+
+Without signing in, notes stay in your browser (IndexedDB) and nothing is sent to a server. Back up to a file now and then, and before clearing browser data.
 
 ## Develop
 
@@ -32,7 +34,7 @@ npm run lint
 npm run build    # production build in dist/
 ```
 
-Built with React, TypeScript, Vite and Dexie.
+Built with React, TypeScript, Vite, Dexie and Firebase.
 
 ## Deploy
 

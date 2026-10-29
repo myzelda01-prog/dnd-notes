@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useState } from 'react'
+import { AccountMenu } from './components/AccountMenu'
 import { CampaignTools } from './components/CampaignTools'
 import { DiceRoller } from './components/DiceRoller'
 import { InstallButton } from './components/InstallButton'
@@ -7,6 +8,7 @@ import { NoteEditor } from './components/NoteEditor'
 import { NoteView } from './components/NoteView'
 import { StatusChip } from './components/StatusChip'
 import { createNote, db, ensureStarterCampaign } from './lib/db'
+import { startSync } from './lib/syncState'
 import { buildTitleIndex, matchesQuery } from './lib/links'
 import { NOTE_TYPES, TYPE_ORDER, type Note, type NoteType } from './lib/types'
 
@@ -50,7 +52,7 @@ export default function App() {
   const [newMenu, setNewMenu] = useState(false)
 
   useEffect(() => {
-    void ensureStarterCampaign()
+    void ensureStarterCampaign().then(startSync)
   }, [])
 
   const campaigns = useLiveQuery(() => db.campaigns.orderBy('created').toArray(), [])
@@ -131,6 +133,7 @@ export default function App() {
         </label>
         <DiceRoller />
         <InstallButton />
+        <AccountMenu />
       </header>
 
       <aside className="sidebar">

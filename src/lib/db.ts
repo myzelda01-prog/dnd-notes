@@ -1,10 +1,11 @@
 import Dexie, { type EntityTable } from 'dexie'
-import { isNoteType, type Campaign, type Note, type NoteType } from './types'
+import { isNoteType, type Campaign, type Deletion, type Note, type NoteType } from './types'
 import { exampleNotes } from './examples'
 
 export const db = new Dexie('dnd-notes') as Dexie & {
   notes: EntityTable<Note, 'id'>
   campaigns: EntityTable<Campaign, 'id'>
+  deletions: EntityTable<Deletion, 'key'>
 }
 
 db.version(1).stores({
@@ -12,25 +13,46 @@ db.version(1).stores({
   campaigns: 'id, created',
 })
 
+// v2: campaigns get an `updated` time and deletes are remembered, both for syncing.
+db.version(2)
+  .stores({ deletions: 'key' })
+  .upgrade((tx) =>
+    tx
+      .table('campaigns')
+      .toCollection()
+      .modify((c: Campaign) => {
+        c.updated = c.updated ?? c.created
+        if (c.name.endsWith('(example)')) c.example = true
+      }),
+  )
+
 export const newId = () => crypto.randomUUID()
 
 export async function createCampaign(name: string): Promise<Campaign> {
-  const campaign: Campaign = { id: newId(), name: name.trim() || 'Untitled campaign', created: Date.now() }
+  const now = Date.now()
+  const campaign: Campaign = { id: newId(), name: name.trim() || 'Untitled campaign', created: now, updated: now }
   await db.campaigns.add(campaign)
   return campaign
 }
 
 export async function renameCampaign(id: string, name: string): Promise<void> {
-  await db.campaigns.update(id, { name: name.trim() || 'Untitled campaign' })
+  // Renaming the example campaign makes it the user's own, so it starts syncing.
+  await db.campaigns.update(id, { name: name.trim() || 'Untitled campaign', updated: Date.now(), example: false })
 }
 
 export async function deleteCampaign(id: string): Promise<void> {
-  await db.transaction('rw', db.campaigns, db.notes, async () => {
-    await db.notes.where('campaignId').equals(id).delete()
+  await db.transaction('rw', db.campaigns, db.notes, db.deletions, async () => {
+    const now = Date.now()
+    const noteIds = (await db.notes.where('campaignId').equals(id).primaryKeys()) as string[]
+    await db.deletions.bulkPut([
+      { key: `campaign:${id}`, deletedAt: now },
+      ...noteIds.map((n) => ({ key: `note:${n}`, deletedAt: now })),
+    ])
+    await db.notes.bulkDelete(noteIds)
     await db.campaigns.delete(id)
     // Always keep one campaign to write into.
     if ((await db.campaigns.count()) === 0) {
-      await db.campaigns.add({ id: newId(), name: 'My campaign', created: Date.now() })
+      await db.campaigns.add({ id: newId(), name: 'My campaign', created: now, updated: now })
     }
   })
 }
@@ -53,14 +75,18 @@ export async function saveNote(note: Note): Promise<void> {
 }
 
 export async function deleteNote(id: string): Promise<void> {
-  await db.notes.delete(id)
+  await db.transaction('rw', db.notes, db.deletions, async () => {
+    await db.deletions.put({ key: `note:${id}`, deletedAt: Date.now() })
+    await db.notes.delete(id)
+  })
 }
 
 /** On first run, create an example campaign so the app shows what it does. */
 export async function ensureStarterCampaign(): Promise<void> {
   await db.transaction('rw', db.campaigns, db.notes, async () => {
     if ((await db.campaigns.count()) > 0) return
-    const campaign: Campaign = { id: newId(), name: 'The Drowned Crown (example)', created: Date.now() }
+    const now = Date.now()
+    const campaign: Campaign = { id: newId(), name: 'The Drowned Crown (example)', created: now, updated: now, example: true }
     await db.campaigns.add(campaign)
     await db.notes.bulkAdd(exampleNotes(campaign.id))
   })
@@ -98,7 +124,8 @@ export async function importBackup(json: string): Promise<Campaign> {
   if (backup?.app !== 'dnd-notes' || !backup.campaign || !Array.isArray(backup.notes)) {
     throw new Error('That file is not a Campaign Codex backup.')
   }
-  const campaign: Campaign = { id: newId(), name: String(backup.campaign.name ?? 'Imported campaign'), created: Date.now() }
+  const now = Date.now()
+  const campaign: Campaign = { id: newId(), name: String(backup.campaign.name ?? 'Imported campaign'), created: now, updated: now }
   const notes: Note[] = backup.notes.filter((n) => isNoteType(n?.type)).map((n) => ({
     id: newId(),
     campaignId: campaign.id,

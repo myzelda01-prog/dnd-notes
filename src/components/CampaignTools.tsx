@@ -44,6 +44,9 @@ export function CampaignTools({ campaign, onSwitch }: Props) {
   return (
     <details className="campaign-tools">
       <summary className="side-label">Campaign options</summary>
+      {campaign.example && (
+        <p className="tool-message">This example stays on this device. Rename it to make it yours and sync it.</p>
+      )}
       {renaming ? (
         <form
           className="rename"

@@ -6,6 +6,8 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   // Relative asset paths so the build works from any folder, including GitHub Pages.
   base: './',
+  // Firebase is a ~630 kB chunk that only loads when sync is configured.
+  build: { chunkSizeWarningLimit: 700 },
   plugins: [
     react(),
     // Makes the app installable from Chrome/Edge and lets it open without internet.
