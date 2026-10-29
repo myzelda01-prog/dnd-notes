@@ -68,6 +68,16 @@ export interface Campaign {
   id: string
   name: string
   created: number
+  updated: number
+  /** The built-in example campaign. It stays on this device and is never synced. */
+  example?: boolean
+}
+
+/** Remembers a delete so it can be synced to other devices. */
+export interface Deletion {
+  /** `note:<id>` or `campaign:<id>` */
+  key: string
+  deletedAt: number
 }
 
 export interface Note {
